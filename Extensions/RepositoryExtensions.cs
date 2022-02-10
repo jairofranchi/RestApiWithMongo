@@ -8,12 +8,20 @@ namespace Catalog.Extensions
     {
         public static void ConfigureRepository(this IServiceCollection services, ConfigurationManager configuration)
         {
+            var mongoDbSettings = configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
+
             services.AddSingleton<IMongoClient>(serviceprovider =>
             {
-                var settings = configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
-                return new MongoClient(settings.ConnectionString);
+                return new MongoClient(mongoDbSettings.ConnectionString);
             });
+
             services.AddSingleton<IItemsRepository, MongoDbItemsRepository>();
+            services.AddHealthChecks()
+                .AddMongoDb(
+                    mongoDbSettings.ConnectionString, 
+                    name: "mongodb", 
+                    timeout: TimeSpan.FromSeconds(3),
+                    tags: new[] { "ready" });
         }
     }
 }
